@@ -1,7 +1,10 @@
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
+const fs = require('fs')
+const authData = JSON.parse(fs.readFileSync('bot/auth.json'))
 const client = new Discord.Client();
-const backport = 8080;
+const backport = authData.port
+const token = authData.token
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -39,4 +42,4 @@ async function sendMessages(){
     });
 }
 
-client.login('NzI2NDI5NzgxMTYzMzc2NjU2.XvdKmg.B5a0lESiR1cYbXP_9PSyrqzUhpU');
+client.login(token);
