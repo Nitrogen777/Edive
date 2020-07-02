@@ -50,7 +50,7 @@ async function getChannel(serverId, callback){
         content = await conn.query("SELECT channelId FROM servers WHERE serverId = ?", [serverId]);
         if(content.length >= 1){
             conn.end
-            callback(content[0]);
+            callback(content[0].channelId);
         }else{
             callback(null);
             conn.end
@@ -62,9 +62,10 @@ async function getChannel(serverId, callback){
 }
 
 
-router.get("/api/test", async (req, res) => {
-    console.log("OK! web asked me!")
-    res.send("Gobba Gabba")
+router.post("/api/test", async (req, res) => {
+    getChannel(req.body.serverId, (channelId) => {
+        client.channels.fetch(channelId).then(channel => channel.send(req.body.msg))
+    })
 })
 
 client.on('message', async msg => {
