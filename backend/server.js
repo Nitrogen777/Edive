@@ -42,6 +42,37 @@ async function setChannelServer(channelId, serverId){
         throw err;
     }
 }
+
+async function addNewUser(userID, passHash){
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        await conn.query("INSERT INTO accounts VALUES(?, ?)", [userID, passHash]);
+        conn.end
+    } catch(err){
+        conn.end;
+        throw err;
+    }
+}
+async function getChannel(serverId, callback){
+    let conn;
+    let content;
+    try {
+        conn = await pool.getConnection();
+        content = await conn.query("SELECT channelId FROM servers WHERE serverId = ?", [serverId]);
+        if(content.length >= 1){
+            conn.end
+            callback(content[0].channelId);
+        }else{
+            callback(null);
+            conn.end
+        }
+    } catch(err){
+        conn.end;
+        throw err;
+    }
+}
+
 async function getChannel(serverId, callback){
     let conn;
     let content;
@@ -62,10 +93,18 @@ async function getChannel(serverId, callback){
 }
 
 
-router.post("/api/test", async (req, res) => {
+router.post("/api/send", async (req, res) => {
     getChannel(req.body.serverId, (channelId) => {
         client.channels.fetch(channelId).then(channel => channel.send(req.body.msg))
     })
+})
+
+router.post("/api/signup", async (req, res) => {
+    addNewUser(req.body.userID, req.body.passHash)
+})
+
+router.get("/api/count", (req, res) => {
+    res.send(""+ client.guilds.cache.size)
 })
 
 client.on('message', async msg => {
