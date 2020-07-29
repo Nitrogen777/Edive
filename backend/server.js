@@ -86,6 +86,43 @@ async function setChannelServer(channelId, serverId) {
     }
 }
 
+async function allowUser(userId, serverId) {
+    let conn;
+    let content;
+    try {
+        conn = await pool.getConnection();
+        content = await conn.query("SELECT * FROM allowed WHERE userId = ? and serverId = ?;", [userId, serverId]);
+        if (content.length >= 1) {
+            conn.end
+        } else {
+            await conn.query("INSERT INTO allowed VALUES(?, ?)", [userId, serverId]);
+            conn.end
+        }
+    } catch (err) {
+        conn.end;
+        throw err;
+    }
+}
+
+async function isAllowed(userId, serverId, callback) {
+    let conn;
+    let content;
+    try {
+        conn = await pool.getConnection();
+        content = await conn.query("SELECT * FROM allowed WHERE userId = ? and serverId = ?;", [userId, serverId])
+        if (content.length >= 1) {
+            conn.end
+            callback({allowed: true})
+        } else {
+            conn.end
+            callback({allowed: false})
+        }
+    } catch (err) {
+        conn.end;
+        throw err;
+    }
+}
+
 async function getUserById(userId, callback) {
     let conn;
     let content;
@@ -100,7 +137,6 @@ async function getUserById(userId, callback) {
             conn.end
         }
     } catch (err) {
-        conn.end;
         throw err;
     }
 }
@@ -149,7 +185,6 @@ async function getChannel(serverId, callback) {
             conn.end
         }
     } catch (err) {
-        conn.end;
         throw err;
     }
 }
@@ -187,15 +222,25 @@ router.post("/api/login", async (req, res) => {
 })
 
 router.get("/api/user", (req, res) => {
-    if(req.isAuthenticated){
-        res.send(req.user.userId)
+    if(!req.isAuthenticated || req.user == null){
+        res.send(null)
     }else{
-        req.send(null)
+        res.send(req.user.userId)
     }
 })
 
 router.get("/api/count", (req, res) => {
     res.send("" + client.guilds.cache.size)
+})
+
+router.get("/api/isallowed/:serverId", (req, res) => {
+    if(!req.isAuthenticated || req.user == null){
+        res.json({allowed: false})
+    }else{
+        isAllowed(req.user.userId, req.params.serverId, (response) => {
+            res.json(response)
+        })
+    }
 })
 
 client.on('message', async msg => {
@@ -205,6 +250,11 @@ client.on('message', async msg => {
             let channel = msg.content.split(" ")[1]
             await setChannelServer(channel, msg.guild.id);
             msg.channel.send("success")
+        }
+        if (msg.content.startsWith("]allow")) {
+            let userId = msg.content.split(" ")[1]
+            await allowUser(userId, msg.guild.id);
+            msg.channel.send("allowed " + userId)
         }
     }
 });
