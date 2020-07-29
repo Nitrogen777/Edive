@@ -21,14 +21,7 @@ class SignUpForm extends React.Component{
             (pass) => {return pass.match(/[0-9]/).length > 0},
             (pass) => {return pass.match(/[a-zA-Z]/).length > 0}
         ]
-        let isValid = true;
-        funcs.forEach(func =>
-            {
-                if(!func(password)){
-                    isValid = false;
-                }
-            })
-        return isValid;
+        return funcs.some(func => !func(password))
     }
 
     handleSubmit(event){
