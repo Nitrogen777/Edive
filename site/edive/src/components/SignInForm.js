@@ -1,6 +1,6 @@
 import React from 'react';
 import { login } from './API';
-import { Redirect } from 'react-router-dom';
+import { Router, Redirect } from 'react-router-dom';
 
 
 
@@ -20,7 +20,7 @@ class SignUpForm extends React.Component {
             if (!res.success) {
                 alert(res.message)
             } else {
-                console.log("Sex Penis")
+                window.location.href = "/home"
             }
         });
     }
@@ -31,15 +31,18 @@ class SignUpForm extends React.Component {
             this.setState({ userID: event.target.value, password: this.state.password })
         }
     }
+
     render() {
         return (
-            <form onSubmit={this.handleSubmit}>
-                <label>Discord User Id</label>
-                <input name="userID" type="text" value={this.state.userID} onChange={this.handleChange} />
-                <label>Password</label>
-                <input name="password" type="password" value={this.state.password} onChange={this.handleChange} />
-                <input type="submit" value="Submit" />
-            </form>
+            <div>
+                <form onSubmit={this.handleSubmit}>
+                    <label>Discord User Id</label>
+                    <input name="userID" type="text" value={this.state.userID} onChange={this.handleChange} />
+                    <label>Password</label>
+                    <input name="password" type="password" value={this.state.password} onChange={this.handleChange} />
+                    <input type="submit" value="Submit" />
+                </form>
+            </div>
         )
     }
 }

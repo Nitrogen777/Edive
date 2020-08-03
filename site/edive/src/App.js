@@ -8,16 +8,20 @@ import {
     BrowserRouter as Router,
     Switch,
     Route,
-  } from "react-router-dom"; 
+    Redirect,
+} from "react-router-dom";
 
-class App extends React.Component{
-    render(){
-        return(
+class App extends React.Component {
+    render() {
+        return (
             <Router>
-                <Route path = "/home" component={Home}/>
-                <Route path = "/send" component={SendMessageForm}/>
-                <Route path = "/register" component={SignUpForm}/>
-                <Route path = "/login" component={SignInForm}/>
+                <Route exact path="/">
+                    <Redirect to="/home" />
+                </Route>
+                <Route path="/home" component={Home} />
+                <Route path="/send" component={SendMessageForm} />
+                <Route path="/register" component={SignUpForm} />
+                <Route path="/login" component={SignInForm} />
             </Router>
         )
     }

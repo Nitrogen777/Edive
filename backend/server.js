@@ -6,6 +6,7 @@ const session = require('express-session');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const router = express.Router();
+const mariadb = require("mariadb");
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
 const bcrypt = require('bcryptjs')
@@ -19,27 +20,24 @@ const secret = authData.secret
 
 passport.use(new LocalStrategy(
     { usernameField: 'userId' },
-    (userId, password, done) => {
-        getUserById(userId, (user) => {
-            if (!user) {
-                return done(null, false, { message: 'Invalid credentials.\n' });
-            }
-            if (!bcrypt.compareSync(password, user.passHash)) {
-                return done(null, false, { message: 'Invalid credentials.\n' });
-            }
-            return done(null, user);
-        });
-    }
-));
+    async (userId, password, done) => {
+        let user = await getUserById(userId)
+        if (!user) {
+            return done(null, false, { message: 'Invalid credentials.\n' });
+        }
+        if (!bcrypt.compareSync(password, user.passHash)) {
+            return done(null, false, { message: 'Invalid credentials.\n' });
+        }
+        return done(null, user);
+    }));
 
 passport.serializeUser((user, done) => {
     done(null, user.userId);
 });
 
-passport.deserializeUser((userId, done) => {
-    getUserById(userId, (user) => {
-        done(null, user);
-    });
+passport.deserializeUser(async (userId, done) => {
+    let user = await getUserById(userId)
+    done(null, user);
 });
 
 
@@ -60,7 +58,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-const mariadb = require("mariadb");
+
 const pool = mariadb.createPool({
     user: 'root',
     password: 'r00t',
@@ -68,132 +66,81 @@ const pool = mariadb.createPool({
 });
 
 async function setChannelServer(channelId, serverId) {
-    let conn;
-    let content;
-    try {
-        conn = await pool.getConnection();
-        content = await conn.query("SELECT * FROM servers WHERE serverId = ?;", [serverId]);
-        if (content.length >= 1) {
-            await conn.query("UPDATE servers SET channelId = ? WHERE serverId = ?", [channelId, serverId]);
-            conn.end
-        } else {
-            await conn.query("INSERT INTO servers VALUES(?, ?)", [serverId, channelId]);
-            conn.end
-        }
-    } catch (err) {
-        conn.end;
-        throw err;
+    let conn = await pool.getConnection();
+    let content = await conn.query("SELECT * FROM servers WHERE serverId = ?;", [serverId]);
+    if (content.length >= 1) {
+        await conn.query("UPDATE servers SET channelId = ? WHERE serverId = ?", [channelId, serverId]);
+        conn.end()
+    } else {
+        await conn.query("INSERT INTO servers VALUES(?, ?)", [serverId, channelId]);
+        conn.end()
     }
 }
 
 async function allowUser(userId, serverId) {
-    let conn;
-    let content;
-    try {
-        conn = await pool.getConnection();
-        content = await conn.query("SELECT * FROM allowed WHERE userId = ? and serverId = ?;", [userId, serverId]);
-        if (content.length >= 1) {
-            conn.end
-        } else {
-            await conn.query("INSERT INTO allowed VALUES(?, ?)", [userId, serverId]);
-            conn.end
-        }
-    } catch (err) {
-        conn.end;
-        throw err;
+    let conn = await pool.getConnection();
+    let content = await conn.query("SELECT * FROM allowed WHERE userId = ? and serverId = ?;", [userId, serverId]);
+    if (content.length >= 1) {
+        conn.end()
+    } else {
+        await conn.query("INSERT INTO allowed VALUES(?, ?)", [userId, serverId]);
+        conn.end()
     }
 }
 
-async function isAllowed(userId, serverId, callback) {
-    let conn;
-    let content;
-    try {
-        conn = await pool.getConnection();
-        content = await conn.query("SELECT * FROM allowed WHERE userId = ? and serverId = ?;", [userId, serverId])
-        if (content.length >= 1) {
-            conn.end
-            callback({allowed: true})
-        } else {
-            conn.end
-            callback({allowed: false})
-        }
-    } catch (err) {
-        conn.end;
-        throw err;
-    }
+async function isAllowed(userId, serverId) {
+    let conn = await pool.getConnection();
+    let content = await conn.query("SELECT * FROM allowed WHERE userId = ? and serverId = ?;", [userId, serverId]);
+    conn.end()
+    return content.length >= 1;
 }
 
-async function getUserById(userId, callback) {
-    let conn;
-    let content;
-    try {
-        conn = await pool.getConnection();
-        content = await conn.query("SELECT * FROM accounts WHERE userId = ?;", [userId]);
-        if (content.length >= 1) {
-            conn.end
-            callback(content[0]);
-        } else {
-            callback(null);
-            conn.end
-        }
-    } catch (err) {
-        throw err;
+async function getUserById(userId) {
+    let conn = await pool.getConnection();
+    let content = await conn.query("SELECT * FROM accounts WHERE userId = ?;", [userId]);
+    if (content.length >= 1) {
+        conn.end()
+        return content[0];
+    } else {
+        conn.end()
+        return null;
     }
 }
 
 async function addNewUser(userID, passHash) {
-    let conn;
-    try {
-        conn = await pool.getConnection();
-        await conn.query("INSERT INTO accounts VALUES(?, ?)", [userID, passHash]);
-        conn.end
-    } catch (err) {
-        conn.end;
-        throw err;
-    }
-}
-async function getChannel(serverId, callback) {
-    let conn;
-    let content;
-    try {
-        conn = await pool.getConnection();
-        content = await conn.query("SELECT channelId FROM servers WHERE serverId = ?", [serverId]);
-        if (content.length >= 1) {
-            conn.end
-            callback(content[0].channelId);
-        } else {
-            callback(null);
-            conn.end
-        }
-    } catch (err) {
-        conn.end;
-        throw err;
-    }
+    let conn = await pool.getConnection();
+    await conn.query("INSERT INTO accounts VALUES(?, ?)", [userID, passHash]);
+    conn.end()
 }
 
-async function getChannel(serverId, callback) {
-    let conn;
-    let content;
-    try {
-        conn = await pool.getConnection();
-        content = await conn.query("SELECT channelId FROM servers WHERE serverId = ?", [serverId]);
-        if (content.length >= 1) {
-            conn.end
-            callback(content[0].channelId);
-        } else {
-            callback(null);
-            conn.end
-        }
-    } catch (err) {
-        throw err;
+async function getChannel(serverId) {
+    let conn = await pool.getConnection();
+    let content = await conn.query("SELECT channelId FROM servers WHERE serverId = ?", [serverId]);
+    if (content.length >= 1) {
+        conn.end()
+        return content[0].channelId;
+    } else {
+        conn.end()
+        return null;
     }
 }
 
 
 router.post("/api/send", async (req, res) => {
-    getChannel(req.body.serverId, (channelId) => {
-        client.channels.fetch(channelId).then(channel => channel.send(req.body.msg))
-    })
+    if (!req.isAuthenticated || req.user == null) {
+        res.json({ success: false, message: "You are not logged in!" })
+    } else {
+        let allowed = await isAllowed(req.user.userId, req.body.serverId)
+        let channelId = await getChannel(req.body.serverId)
+        if (channelId == null) {
+            res.json({ success: false, message: "The server did not choose a channel!" })
+        } else if (allowed) {
+            client.channels.fetch(channelId).then(channel => channel.send(req.body.msg))
+            res.json({ success: true, message: "Success" })
+        } else {
+            res.json({ success: false, message: "You are not allowed to send messages to that server!" })
+        }
+    }
 })
 
 router.post("/api/signup", async (req, res) => {
@@ -204,43 +151,33 @@ router.post("/api/login", async (req, res) => {
     passport.authenticate('local', (err, user, info) => {
         if (info) {
             console.log(info.message)
-            return res.send({success: false, message: info.message})
+            return res.send({ success: false, message: info.message })
         }
         if (err) {
-            return res.send({success: false, message: err});
+            return res.send({ success: false, message: err });
         }
         if (!user) {
-            return res.send({success: false, message: "Unable to log in"});
+            return res.send({ success: false, message: "Unable to log in" });
         }
         req.login(user, (err) => {
             if (err) {
-                return res.send({success: false, message: err});
+                return res.send({ success: false, message: err });
             }
-            return res.send({success: true, message: "Success"});
+            return res.send({ success: true, message: "Success" });
         })
     })(req, res);
 })
 
 router.get("/api/user", (req, res) => {
-    if(!req.isAuthenticated || req.user == null){
+    if (!req.isAuthenticated || req.user == null) {
         res.send(null)
-    }else{
+    } else {
         res.send(req.user.userId)
     }
 })
 
 router.get("/api/count", (req, res) => {
     res.send("" + client.guilds.cache.size)
-})
-
-router.get("/api/isallowed/:serverId", (req, res) => {
-    if(!req.isAuthenticated || req.user == null){
-        res.json({allowed: false})
-    }else{
-        isAllowed(req.user.userId, req.params.serverId, (response) => {
-            res.json(response)
-        })
-    }
 })
 
 client.on('message', async msg => {

@@ -2,18 +2,14 @@ var bcrypt = require('bcryptjs')
 
 export async function sendMessageToServer(serverId, msg) {
     try {
-        let response = await fetch("/api/isallowed/" + serverId).then(res => res.json())
-        console.log(response.allowed)
-        if (!response.allowed) {
-            alert("You are not allowed to send messages to that server")
-        }
-        else {
-            let body = { serverId: serverId, msg: msg }
-            fetch("/api/send", {
-                method: 'post',
-                body: JSON.stringify(body),
-                headers: { 'Content-Type': 'application/json' },
-            })
+        let body = { serverId: serverId, msg: msg }
+        let response = await fetch("/api/send", {
+            method: 'post',
+            body: JSON.stringify(body),
+            headers: { 'Content-Type': 'application/json' },
+        }).then(res => res.json())
+        if (!response.success) {
+            alert(response.message)
         }
     } catch (err) {
         console.log(err);
@@ -36,7 +32,6 @@ export async function login(userId, password) {
 }
 
 export async function createNewUser(userID, password) {
-    console.log("PEESD")
     try {
         let body = { userID: userID, passHash: bcrypt.hashSync(password) }
         return await fetch("/api/signup", {
