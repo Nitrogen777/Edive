@@ -144,7 +144,13 @@ router.post("/api/send", async (req, res) => {
 })
 
 router.post("/api/signup", async (req, res) => {
-    addNewUser(req.body.userID, req.body.passHash)
+    let user = await getUserById(req.body.userID)
+    if(user == null){
+        await addNewUser(req.body.userID, req.body.passHash)
+        res.json({ success: true, message: "Success" })
+    }else{
+        res.json({ success: false, message: "There is already an account with that userID!" })
+    }
 })
 
 router.post("/api/login", async (req, res) => {

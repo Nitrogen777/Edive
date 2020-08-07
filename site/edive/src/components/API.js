@@ -38,7 +38,7 @@ export async function createNewUser(userID, password) {
             method: 'post',
             body: JSON.stringify(body),
             headers: { 'Content-Type': 'application/json' },
-        }).then(res => res.json)
+        }).then(res => res.json())
     } catch (err) {
         console.log(err);
     }

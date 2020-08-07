@@ -24,14 +24,19 @@ class SignUpForm extends React.Component {
         } else if (!this.validatePassword(this.state.password)) {
             alert("Password is too weak!")
         } else {
-            createNewUser(this.state.userID, this.state.password)
-            login(this.state.userID, this.state.password).then(res => {
+            createNewUser(this.state.userID, this.state.password).then(res => {
                 if (!res.success) {
                     alert(res.message)
                 } else {
-                    window.location.href = "/home"
+                    login(this.state.userID, this.state.password).then(res => {
+                        if (!res.success) {
+                            alert(res.message)
+                        } else {
+                            window.location.href = "/home"
+                        }
+                    });
                 }
-            });
+            })
         }
     }
     handleChange(event) {
