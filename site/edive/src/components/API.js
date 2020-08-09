@@ -18,19 +18,14 @@ export async function sendMessageToServer(serverId, msg) {
 
 
 
-export async function login(userId, password) {
+export async function getAuthLink() {
     try {
-        let body = { userId: userId, password: password }
-        return await fetch("/api/login", {
-            method: 'post',
-            body: JSON.stringify(body),
-            headers: { 'Content-Type': 'application/json' },
-        }).then(res => res.json())
+        return await fetch("/api/login").then(res => res.text())
     } catch (err) {
         console.log(err);
     }
 }
-
+/*
 export async function createNewUser(userID, password) {
     try {
         let body = { userID: userID, passHash: bcrypt.hashSync(password) }
@@ -42,4 +37,4 @@ export async function createNewUser(userID, password) {
     } catch (err) {
         console.log(err);
     }
-}
+}*/

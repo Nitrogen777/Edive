@@ -1,31 +1,35 @@
 import React from 'react'
 import { Link, Router } from "react-router-dom";
+import { getAuthLink } from "./API";
 
 class Home extends React.Component {
     constructor(props) {
         super(props)
 
-        this.state = { numserver: '', username: '' }
-
+        this.state = { numserver: '', link: ''}
+        this.user = null
     }
 
     componentDidMount = async () => {
         let serverCount = await fetch("/api/count").then(res => res.text())
-        let username = await fetch("/api/user").then(res => res.text())
-        this.setState({ numserver: serverCount, username: username })
+        console.log(serverCount)
+        this.user = await fetch("/api/user").then(res => res.json())
+        console.log(this.user)
+        let link = await getAuthLink()
+        this.setState({ numserver: serverCount, link: link})
     }
 
     displayForUser() {
-        if (this.state.username === '') {
+        if (this.user == null) {
             return (
                 <div>
-                    <Link to="/login">Login</Link>
-                    <Link to="/Register">Sign Up</Link>
+                    <a href= {this.state.link}>Login With Discord</a>
                 </div>
             )
         }else{
             return (
                 <div>
+                    <h1>Hello {this.user.username}</h1>
                     <Link to="/send">Send Message</Link>
                 </div>
             )
